@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="40" viewBox="0 0 240 40" fill="none">
+  <!-- Box/Shelf Icon -->
+  <path d="M30 28V12a3 3 0 0 0-1.5-2.6l-10.5-6a3 3 0 0 0-3 0l-10.5 6A3 3 0 0 0 3 12v16a3 3 0 0 0 1.5 2.6l10.5 6a3 3 0 0 0 3 0l10.5-6A3 3 0 0 0 30 28z" fill="#49274a" opacity="0.2"/>
+  <path d="M30 28V12a3 3 0 0 0-1.5-2.6l-10.5-6a3 3 0 0 0-3 0l-10.5 6A3 3 0 0 0 3 12v16a3 3 0 0 0 1.5 2.6l10.5 6a3 3 0 0 0 3 0l10.5-6A3 3 0 0 0 30 28z" stroke="#49274a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="3.9 10.44 16.5 18.01 29.1 10.44" stroke="#49274a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="16.5" y1="33.12" x2="16.5" y2="18" stroke="#49274a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Digital books/products on shelf -->
+  <rect x="7" y="14" width="3" height="8" rx="0.5" fill="#49274a" opacity="0.7"/>
+  <rect x="12" y="12" width="3" height="10" rx="0.5" fill="#49274a" opacity="0.9"/>
+  <rect x="17" y="13" width="3" height="9" rx="0.5" fill="#49274a" opacity="0.8"/>
+  <rect x="22" y="15" width="3" height="7" rx="0.5" fill="#49274a" opacity="0.6"/>
+  
+  <!-- Text: MyDigitalShelf -->
+  <text x="40" y="24" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#49274a">MyDigitalShelf</text>
+</svg>
