@@ -2,221 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  
-  /* Main colors */
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-foreground: #ffffff;
-  
-  --secondary: #0ea5e9;
-  --secondary-hover: #0284c7;
-  --secondary-foreground: #ffffff;
-  
-  /* UI colors */
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  
-  --accent: #f7f9fb;
-  --accent-foreground: #0f172a;
-  
-  --destructive: #ef4444;
-  --destructive-hover: #dc2626;
-  --destructive-foreground: #ffffff;
-  
-  /* Border and input colors */
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: rgba(79, 70, 229, 0.3);
-  
-  /* Dimensions */
-  --radius: 0.5rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
-    --card: #1e293b;
-    --card-foreground: #f8fafc;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --accent: #1e293b;
-    --accent-foreground: #f8fafc;
-    --border: #334155;
-    --input: #334155;
-    --ring: rgba(79, 70, 229, 0.5);
-  }
-}
-
-* {
-  @apply border-border;
-}
-
-body {
-  font-family: var(--font-sans);
-  background-color: var(--background);
-  color: var(--foreground);
-  @apply antialiased min-h-screen;
-}
-
-@layer base {
-  h1 {
-    @apply text-3xl font-bold tracking-tight mb-4;
-  }
-  h2 {
-    @apply text-2xl font-bold tracking-tight mb-3;
-  }
-  h3 {
-    @apply text-xl font-bold tracking-tight mb-2;
-  }
-  h4 {
-    @apply text-lg font-semibold mb-2;
-  }
-  p {
-    @apply leading-7 mb-4;
-  }
-  a {
-    @apply text-primary hover:text-primary-hover transition-colors;
-  }
-}
-
 @layer components {
-  /* Button variants */
+  .card {
+    @apply bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-200 dark:border-gray-700;
+  }
+  
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
+    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+    bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100;
+  }
+  
   .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors 
-    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-    disabled:opacity-50 disabled:pointer-events-none;
-  }
-  
-  .btn-default {
-    @apply btn h-10 py-2 px-4;
-  }
-  
-  .btn-sm {
-    @apply btn h-9 px-3 rounded-md;
-  }
-  
-  .btn-lg {
-    @apply btn h-11 px-8 rounded-md;
+    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200
+    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500
+    disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary-hover;
-  }
-  
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary-hover;
+    @apply bg-primary-600 hover:bg-primary-700 text-white;
   }
   
   .btn-outline {
-    @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground;
+    @apply border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700
+    text-gray-700 dark:text-gray-300;
   }
-  
-  .btn-ghost {
-    @apply hover:bg-accent hover:text-accent-foreground;
-  }
-  
-  .btn-destructive {
-    @apply bg-destructive text-destructive-foreground hover:bg-destructive-hover;
-  }
-  
-  /* Form elements */
-  .form-label {
-    @apply block text-sm font-medium leading-none mb-2;
-  }
-  
-  .form-input {
-    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm
-    placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
-    focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  
-  .form-select {
-    @apply form-input appearance-none bg-no-repeat bg-[right_0.5rem_center]
-    bg-[length:1em_1em] pr-8;
-  }
-  
-  .form-checkbox {
-    @apply h-4 w-4 rounded border border-input bg-background focus-visible:outline-none
-    focus-visible:ring-2 focus-visible:ring-ring;
-  }
-  
-  .form-radio {
-    @apply h-4 w-4 rounded-full border border-input bg-background focus-visible:outline-none
-    focus-visible:ring-2 focus-visible:ring-ring;
-  }
-  
-  /* Card component */
-  .card {
-    @apply rounded-lg border border-border bg-card text-card-foreground shadow-sm;
-  }
-  
-  .card-header {
-    @apply flex flex-col space-y-1.5 p-6;
-  }
-  
-  .card-title {
-    @apply text-xl font-semibold leading-none tracking-tight;
-  }
-  
-  .card-description {
-    @apply text-sm text-muted-foreground;
-  }
-  
-  .card-content {
-    @apply p-6 pt-0;
-  }
-  
-  .card-footer {
-    @apply flex items-center p-6 pt-0;
-  }
-  
-  /* Badge component */
-  .badge {
-    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors;
-  }
-  
-  .badge-primary {
-    @apply border-transparent bg-primary text-primary-foreground;
-  }
-  
-  .badge-secondary {
-    @apply border-transparent bg-secondary text-secondary-foreground;
-  }
-  
-  .badge-outline {
-    @apply text-foreground;
-  }
-  
-  .badge-destructive {
-    @apply border-transparent bg-destructive text-destructive-foreground;
-  }
-  
-  /* Alert component */
-  .alert {
-    @apply relative w-full rounded-lg border p-4;
-  }
-  
-  .alert-info {
-    @apply bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800;
-  }
-  
-  .alert-success {
-    @apply bg-green-50 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800;
-  }
-  
-  .alert-warning {
-    @apply bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800;
-  }
-  
-  .alert-error {
-    @apply bg-red-50 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800;
-  }
+}
+
+:root {
+  --color-primary-50: 239 246 255;
+  --color-primary-100: 219 234 254;
+  --color-primary-200: 191 219 254;
+  --color-primary-300: 147 197 253;
+  --color-primary-400: 96 165 250;
+  --color-primary-500: 59 130 246;
+  --color-primary-600: 37 99 235;
+  --color-primary-700: 29 78 216;
+  --color-primary-800: 30 64 175;
+  --color-primary-900: 30 58 138;
+  --color-primary-950: 23 37 84;
+}
+
+/* Dark mode adjustments */
+.dark {
+  color-scheme: dark;
 }
