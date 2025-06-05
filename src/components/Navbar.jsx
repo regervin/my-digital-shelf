@@ -18,16 +18,13 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to="/" className="text-xl font-bold text-primary-600">
-              MyDigitalShelf
+              Digital Product Delivery
             </Link>
           </div>
           
           <div className="flex items-center space-x-4">
             {user ? (
               <>
-                <Link to="/dashboard" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
-                  Dashboard
-                </Link>
                 <span className="text-gray-700 dark:text-gray-300">
                   {user.email}
                 </span>

@@ -21,7 +21,7 @@ export default function Login() {
     try {
       setLoading(true)
       await signIn(email, password)
-      toast.success('Logged in successfully!')
+      toast.success('Logged in successfully')
       navigate('/dashboard')
     } catch (error) {
       console.error('Login error:', error)
@@ -65,11 +65,12 @@ export default function Login() {
               placeholder="••••••••"
               required
             />
-            <div className="flex justify-end mt-1">
-              <Link to="/forgot-password" className="text-sm text-primary-600 hover:underline">
-                Forgot password?
-              </Link>
-            </div>
+          </div>
+          
+          <div className="text-right">
+            <Link to="/forgot-password" className="text-sm text-primary-600 hover:underline">
+              Forgot password?
+            </Link>
           </div>
           
           <button
