@@ -4,6 +4,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiEye, FiSearch, FiFilter } from 'react-icon
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { format } from 'date-fns'
+import toast from 'react-hot-toast'
 
 export default function Memberships() {
   const { user } = useAuth()
@@ -13,46 +14,34 @@ export default function Memberships() {
   const [filter, setFilter] = useState('all')
 
   useEffect(() => {
-    async function fetchMemberships() {
-      try {
-        setLoading(true)
-        
-        // In a real app, this would be a query to your database
-        // For now, we'll simulate some data
-        setTimeout(() => {
-          const dummyMemberships = [
-            { 
-              id: 1, 
-              name: 'Basic Membership', 
-              price: 9.99, 
-              billing_cycle: 'monthly', 
-              members: 12, 
-              created_at: new Date(2023, 9, 15),
-              status: 'active'
-            },
-            { 
-              id: 2, 
-              name: 'Premium Membership', 
-              price: 19.99, 
-              billing_cycle: 'monthly', 
-              members: 8, 
-              created_at: new Date(2023, 8, 22),
-              status: 'active'
-            }
-          ]
-          
-          setMemberships(dummyMemberships)
-          setLoading(false)
-        }, 800)
-        
-      } catch (error) {
-        console.error('Error fetching memberships:', error)
-        setLoading(false)
-      }
-    }
-    
     fetchMemberships()
   }, [user])
+
+  async function fetchMemberships() {
+    try {
+      setLoading(true)
+      
+      if (!user) return
+      
+      const { data, error } = await supabase
+        .from('memberships')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        throw error
+      }
+      
+      if (data) {
+        setMemberships(data)
+      }
+    } catch (error) {
+      console.error('Error fetching memberships:', error)
+      toast.error('Failed to load memberships')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredMemberships = memberships
     .filter(membership => {
@@ -69,9 +58,23 @@ export default function Memberships() {
       return true
     })
 
-  const handleDelete = (id) => {
-    // In a real app, this would delete from the database
-    setMemberships(memberships.filter(membership => membership.id !== id))
+  const handleDelete = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('memberships')
+        .delete()
+        .eq('id', id)
+      
+      if (error) {
+        throw error
+      }
+      
+      setMemberships(memberships.filter(membership => membership.id !== id))
+      toast.success('Membership deleted successfully')
+    } catch (error) {
+      console.error('Error deleting membership:', error)
+      toast.error('Failed to delete membership')
+    }
   }
 
   return (
@@ -109,6 +112,7 @@ export default function Memberships() {
               <option value="all">All Memberships</option>
               <option value="active">Active</option>
               <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
             </select>
           </div>
         </div>
@@ -130,7 +134,6 @@ export default function Memberships() {
                   <th className="pb-3">Name</th>
                   <th className="pb-3">Price</th>
                   <th className="pb-3">Billing</th>
-                  <th className="pb-3">Members</th>
                   <th className="pb-3">Status</th>
                   <th className="pb-3">Created</th>
                   <th className="pb-3">Actions</th>
@@ -140,19 +143,20 @@ export default function Memberships() {
                 {filteredMemberships.map((membership) => (
                   <tr key={membership.id} className="border-t border-gray-200 dark:border-gray-700">
                     <td className="py-3 font-medium">{membership.name}</td>
-                    <td className="py-3">${membership.price.toFixed(2)}</td>
+                    <td className="py-3">${parseFloat(membership.price).toFixed(2)}</td>
                     <td className="py-3 capitalize">{membership.billing_cycle}</td>
-                    <td className="py-3">{membership.members}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         membership.status === 'active' 
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                          : membership.status === 'archived'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                       }`}>
                         {membership.status}
                       </span>
                     </td>
-                    <td className="py-3">{format(membership.created_at, 'MMM dd, yyyy')}</td>
+                    <td className="py-3">{format(new Date(membership.created_at), 'MMM dd, yyyy')}</td>
                     <td className="py-3">
                       <div className="flex space-x-2">
                         <Link to={`/memberships/${membership.id}`} className="text-gray-500 hover:text-primary-600">

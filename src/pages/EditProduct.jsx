@@ -16,9 +16,11 @@ export default function EditProduct() {
     type: 'ebook',
     price: '',
     status: 'draft',
-    downloadUrl: '',
-    licenseType: 'standard',
-    downloadLimit: 3
+    download_url: '',
+    license_type: 'standard',
+    download_limit: 3,
+    file_size: '',
+    file_type: ''
   })
   
   const [file, setFile] = useState(null)
@@ -30,34 +32,36 @@ export default function EditProduct() {
       try {
         setLoading(true)
         
-        // In a real app, this would fetch from your database
-        // For now, we'll simulate some data
-        setTimeout(() => {
-          const dummyProduct = {
-            id: parseInt(id),
-            name: 'Ultimate Web Design Course', 
-            description: 'A comprehensive course covering all aspects of modern web design.',
-            type: 'course', 
-            price: 49.99, 
-            status: 'active',
-            downloadUrl: 'https://example.com/download/webdesign.zip',
-            licenseType: 'standard',
-            downloadLimit: 3
-          }
-          
-          setFormData(dummyProduct)
-          setLoading(false)
-        }, 800)
+        if (!user || !id) return
         
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single()
+        
+        if (error) {
+          throw error
+        }
+        
+        if (!data) {
+          toast.error('Product not found')
+          navigate('/products')
+          return
+        }
+        
+        setFormData(data)
+        setLoading(false)
       } catch (error) {
         console.error('Error fetching product:', error)
         toast.error('Failed to load product')
         setLoading(false)
+        navigate('/products')
       }
     }
     
     fetchProduct()
-  }, [id])
+  }, [id, user, navigate])
   
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -66,7 +70,16 @@ export default function EditProduct() {
   
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+      const selectedFile = e.target.files[0]
+      setFile(selectedFile)
+      
+      // Update file size and type
+      const fileSizeInMB = (selectedFile.size / (1024 * 1024)).toFixed(2)
+      setFormData(prev => ({
+        ...prev,
+        file_size: `${fileSizeInMB} MB`,
+        file_type: selectedFile.type.split('/')[1].toUpperCase()
+      }))
     }
   }
   
@@ -81,14 +94,47 @@ export default function EditProduct() {
     try {
       setIsSubmitting(true)
       
-      // In a real app, this would update the product in the database
-      // For now, we'll simulate success
+      // Upload file if selected
+      let fileUrl = formData.download_url
       
-      setTimeout(() => {
-        toast.success('Product updated successfully!')
-        navigate('/products')
-      }, 1500)
+      if (file) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+        const filePath = `${user.id}/${fileName}`
+        
+        const { error: uploadError } = await supabase.storage
+          .from('product_files')
+          .upload(filePath, file)
+        
+        if (uploadError) {
+          throw uploadError
+        }
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('product_files')
+          .getPublicUrl(filePath)
+        
+        fileUrl = publicUrl
+      }
       
+      // Update product in database
+      const { error } = await supabase
+        .from('products')
+        .update({
+          ...formData,
+          price: parseFloat(formData.price),
+          download_url: fileUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+      
+      if (error) {
+        throw error
+      }
+      
+      toast.success('Product updated successfully!')
+      navigate('/products')
     } catch (error) {
       console.error('Error updating product:', error)
       toast.error('Failed to update product')
@@ -200,7 +246,7 @@ export default function EditProduct() {
             </div>
             <textarea
               name="description"
-              value={formData.description}
+              value={formData.description || ''}
               onChange={handleChange}
               rows="4"
               placeholder="Describe your product..."
@@ -224,7 +270,7 @@ export default function EditProduct() {
               <label htmlFor="product-file" className="cursor-pointer">
                 <FiUpload className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  {file ? file.name : 'Click to upload or drag and drop'}
+                  {file ? file.name : formData.file_size ? 'File already uploaded (click to replace)' : 'Click to upload or drag and drop'}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                   PDF, ZIP, MP4, MP3 (max. 500MB)
@@ -243,8 +289,8 @@ export default function EditProduct() {
               </div>
               <input
                 type="url"
-                name="downloadUrl"
-                value={formData.downloadUrl}
+                name="download_url"
+                value={formData.download_url || ''}
                 onChange={handleChange}
                 placeholder="https://example.com/download/file.pdf"
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -262,8 +308,8 @@ export default function EditProduct() {
               License Type
             </label>
             <select
-              name="licenseType"
-              value={formData.licenseType}
+              name="license_type"
+              value={formData.license_type || 'standard'}
               onChange={handleChange}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-2"
             >
@@ -279,8 +325,8 @@ export default function EditProduct() {
             </label>
             <input
               type="number"
-              name="downloadLimit"
-              value={formData.downloadLimit}
+              name="download_limit"
+              value={formData.download_limit || 3}
               onChange={handleChange}
               min="1"
               max="100"
@@ -312,12 +358,12 @@ export default function EditProduct() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Updating...
+                Saving...
               </span>
             ) : (
               <span className="flex items-center">
                 <FiSave className="mr-2" />
-                Update Product
+                Save Changes
               </span>
             )}
           </button>

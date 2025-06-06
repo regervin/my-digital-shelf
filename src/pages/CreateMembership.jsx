@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { FiSave, FiDollarSign, FiCreditCard, FiFileText, FiLock } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { v4 as uuidv4 } from 'uuid'
 import toast from 'react-hot-toast'
 
 export default function CreateMembership() {
@@ -14,10 +13,10 @@ export default function CreateMembership() {
     name: '',
     description: '',
     price: '',
-    billingCycle: 'monthly',
+    billing_cycle: 'monthly',
     status: 'draft',
-    trialDays: 0,
-    accessType: 'standard'
+    trial_days: 0,
+    access_type: 'standard'
   })
   
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -38,17 +37,28 @@ export default function CreateMembership() {
     try {
       setIsSubmitting(true)
       
-      // In a real app, this would save membership data
-      // For now, we'll simulate success
+      const { data, error } = await supabase
+        .from('memberships')
+        .insert([
+          { 
+            ...formData, 
+            user_id: user.id,
+            price: parseFloat(formData.price)
+          }
+        ])
+        .select()
       
-      setTimeout(() => {
-        toast.success('Membership created successfully!')
-        navigate('/memberships')
-      }, 1500)
+      if (error) {
+        throw error
+      }
+      
+      toast.success('Membership created successfully!')
+      navigate('/memberships')
       
     } catch (error) {
       console.error('Error creating membership:', error)
       toast.error('Failed to create membership')
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -108,8 +118,8 @@ export default function CreateMembership() {
               Billing Cycle
             </label>
             <select
-              name="billingCycle"
-              value={formData.billingCycle}
+              name="billing_cycle"
+              value={formData.billing_cycle}
               onChange={handleChange}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-2"
             >
@@ -132,6 +142,7 @@ export default function CreateMembership() {
             >
               <option value="draft">Draft</option>
               <option value="active">Active</option>
+              <option value="archived">Archived</option>
             </select>
           </div>
         </div>
@@ -162,8 +173,8 @@ export default function CreateMembership() {
             </label>
             <input
               type="number"
-              name="trialDays"
-              value={formData.trialDays}
+              name="trial_days"
+              value={formData.trial_days}
               onChange={handleChange}
               min="0"
               max="90"
@@ -183,8 +194,8 @@ export default function CreateMembership() {
                 <FiLock className="text-gray-400" />
               </div>
               <select
-                name="accessType"
-                value={formData.accessType}
+                name="access_type"
+                value={formData.access_type}
                 onChange={handleChange}
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >

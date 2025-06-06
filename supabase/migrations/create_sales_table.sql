@@ -17,6 +17,55 @@
     - Add policies for authenticated users to manage their own sales
 */
 
+-- First create the customers table if it doesn't exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'customers') THEN
+    CREATE TABLE customers (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      name text NOT NULL,
+      email text NOT NULL,
+      phone text,
+      notes text,
+      seller_id uuid REFERENCES auth.users(id) NOT NULL,
+      created_at timestamptz DEFAULT now(),
+      updated_at timestamptz DEFAULT now(),
+      UNIQUE(email, seller_id)
+    );
+
+    ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+
+    -- Policy for users to select their own customers
+    CREATE POLICY "Users can view their own customers"
+      ON customers
+      FOR SELECT
+      TO authenticated
+      USING (auth.uid() = seller_id);
+
+    -- Policy for users to insert their own customers
+    CREATE POLICY "Users can insert their own customers"
+      ON customers
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (auth.uid() = seller_id);
+
+    -- Policy for users to update their own customers
+    CREATE POLICY "Users can update their own customers"
+      ON customers
+      FOR UPDATE
+      TO authenticated
+      USING (auth.uid() = seller_id);
+
+    -- Policy for users to delete their own customers
+    CREATE POLICY "Users can delete their own customers"
+      ON customers
+      FOR DELETE
+      TO authenticated
+      USING (auth.uid() = seller_id);
+  END IF;
+END $$;
+
+-- Now create the sales table
 CREATE TABLE IF NOT EXISTS sales (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id uuid REFERENCES products(id),

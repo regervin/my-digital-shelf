@@ -14,58 +14,68 @@ export default function EditMembership() {
     name: '',
     description: '',
     price: '',
-    billingCycle: 'monthly',
+    billing_cycle: 'monthly',
     status: 'draft',
-    trialDays: 0,
-    accessType: 'standard'
+    trial_days: 0,
+    access_type: 'standard'
   })
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [includedProducts, setIncludedProducts] = useState([])
-  const [availableProducts, setAvailableProducts] = useState([])
+  const [includedProducts, setIncludedProducts] = useState([
+    { id: 1, name: 'Ultimate Web Design Course', checked: false },
+    { id: 2, name: 'Digital Marketing Ebook', checked: false },
+    { id: 3, name: 'SEO Toolkit', checked: false },
+    { id: 4, name: 'Content Creation Templates', checked: false }
+  ])
   
   useEffect(() => {
-    async function fetchMembership() {
-      try {
-        setLoading(true)
-        
-        // In a real app, this would fetch from your database
-        // For now, we'll simulate some data
-        setTimeout(() => {
-          const dummyMembership = {
-            id: parseInt(id),
-            name: 'Premium Membership', 
-            description: 'Access to all premium courses and resources with priority support.',
-            price: 29.99, 
-            billingCycle: 'monthly',
-            status: 'active',
-            trialDays: 7,
-            accessType: 'premium'
-          }
-          
-          setFormData(dummyMembership)
-          
-          // Simulate included products
-          setIncludedProducts([
-            { id: 1, name: 'Ultimate Web Design Course', checked: true },
-            { id: 2, name: 'Digital Marketing Ebook', checked: true },
-            { id: 3, name: 'SEO Toolkit', checked: false },
-            { id: 4, name: 'Content Creation Templates', checked: true }
-          ])
-          
-          setLoading(false)
-        }, 800)
-        
-      } catch (error) {
-        console.error('Error fetching membership:', error)
-        toast.error('Failed to load membership')
-        setLoading(false)
-      }
-    }
-    
     fetchMembership()
-  }, [id])
+  }, [id, user])
+  
+  async function fetchMembership() {
+    try {
+      setLoading(true)
+      
+      if (!user || !id) return
+      
+      const { data, error } = await supabase
+        .from('memberships')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (error) {
+        throw error
+      }
+      
+      if (data) {
+        setFormData({
+          name: data.name,
+          description: data.description || '',
+          price: data.price,
+          billing_cycle: data.billing_cycle,
+          status: data.status,
+          trial_days: data.trial_days || 0,
+          access_type: data.access_type || 'standard'
+        })
+        
+        // In a real app, you would fetch the included products here
+        // For now, we'll simulate some data
+        setIncludedProducts(prev => 
+          prev.map((product, index) => ({
+            ...product,
+            checked: index % 2 === 0 // Just for demonstration
+          }))
+        )
+      }
+    } catch (error) {
+      console.error('Error fetching membership:', error)
+      toast.error('Failed to load membership')
+    } finally {
+      setLoading(false)
+    }
+  }
   
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -93,17 +103,33 @@ export default function EditMembership() {
     try {
       setIsSubmitting(true)
       
-      // In a real app, this would update the membership in the database
-      // For now, we'll simulate success
+      const { error } = await supabase
+        .from('memberships')
+        .update({
+          name: formData.name,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          billing_cycle: formData.billing_cycle,
+          status: formData.status,
+          trial_days: formData.trial_days,
+          access_type: formData.access_type,
+          updated_at: new Date()
+        })
+        .eq('id', id)
       
-      setTimeout(() => {
-        toast.success('Membership updated successfully!')
-        navigate('/memberships')
-      }, 1500)
+      if (error) {
+        throw error
+      }
+      
+      // In a real app, you would update the product associations here
+      
+      toast.success('Membership updated successfully!')
+      navigate('/memberships')
       
     } catch (error) {
       console.error('Error updating membership:', error)
       toast.error('Failed to update membership')
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -171,8 +197,8 @@ export default function EditMembership() {
               Billing Cycle
             </label>
             <select
-              name="billingCycle"
-              value={formData.billingCycle}
+              name="billing_cycle"
+              value={formData.billing_cycle}
               onChange={handleChange}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-2"
             >
@@ -226,8 +252,8 @@ export default function EditMembership() {
             </label>
             <input
               type="number"
-              name="trialDays"
-              value={formData.trialDays}
+              name="trial_days"
+              value={formData.trial_days}
               onChange={handleChange}
               min="0"
               max="90"
@@ -247,8 +273,8 @@ export default function EditMembership() {
                 <FiLock className="text-gray-400" />
               </div>
               <select
-                name="accessType"
-                value={formData.accessType}
+                name="access_type"
+                value={formData.access_type}
                 onChange={handleChange}
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
@@ -267,7 +293,7 @@ export default function EditMembership() {
           </p>
           
           <div className="space-y-2">
-            {includedProducts.map((product) => (
+            {includedProducts.map(product => (
               <label key={product.id} className="flex items-center">
                 <input 
                   type="checkbox" 
@@ -284,34 +310,44 @@ export default function EditMembership() {
         <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6">
           <h3 className="font-medium mb-2">Membership Settings</h3>
           
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="flex items-center">
                 <input type="checkbox" className="rounded text-primary-600 focus:ring-primary-500" defaultChecked />
-                <span className="ml-2 text-gray-700 dark:text-gray-300">Allow membership cancellation</span>
+                <span className="ml-2 text-gray-700 dark:text-gray-300">Allow Cancellation</span>
               </label>
-              <p className="text-xs text-gray-500 dark:text-gray-500 ml-6 mt-1">
-                Members can cancel their subscription at any time
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ml-6">
+                Members can cancel their subscription
               </p>
             </div>
             
             <div>
               <label className="flex items-center">
                 <input type="checkbox" className="rounded text-primary-600 focus:ring-primary-500" defaultChecked />
-                <span className="ml-2 text-gray-700 dark:text-gray-300">Send welcome email</span>
+                <span className="ml-2 text-gray-700 dark:text-gray-300">Automatic Renewal</span>
               </label>
-              <p className="text-xs text-gray-500 dark:text-gray-500 ml-6 mt-1">
-                Automatically send a welcome email when someone joins
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ml-6">
+                Subscriptions renew automatically
               </p>
             </div>
             
             <div>
               <label className="flex items-center">
                 <input type="checkbox" className="rounded text-primary-600 focus:ring-primary-500" />
-                <span className="ml-2 text-gray-700 dark:text-gray-300">Require approval</span>
+                <span className="ml-2 text-gray-700 dark:text-gray-300">Limited Availability</span>
               </label>
-              <p className="text-xs text-gray-500 dark:text-gray-500 ml-6 mt-1">
-                Manually approve new members before they can access content
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ml-6">
+                Limit the number of memberships sold
+              </p>
+            </div>
+            
+            <div>
+              <label className="flex items-center">
+                <input type="checkbox" className="rounded text-primary-600 focus:ring-primary-500" />
+                <span className="ml-2 text-gray-700 dark:text-gray-300">Send Welcome Email</span>
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ml-6">
+                Send an email when someone joins
               </p>
             </div>
           </div>
@@ -337,12 +373,12 @@ export default function EditMembership() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Updating...
+                Saving...
               </span>
             ) : (
               <span className="flex items-center">
                 <FiSave className="mr-2" />
-                Update Membership
+                Save Changes
               </span>
             )}
           </button>

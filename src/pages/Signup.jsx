@@ -8,7 +8,8 @@ export default function Signup() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signUp, signIn } = useAuth()
+  const [emailSent, setEmailSent] = useState(false)
+  const { signUp } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -31,17 +32,16 @@ export default function Signup() {
     
     try {
       setLoading(true)
-      const { user } = await signUp(email, password)
+      const { data, needsEmailConfirmation } = await signUp(email, password)
       
-      if (user) {
-        // Since we're auto-confirming in development, we can sign in immediately
-        await signIn(email, password)
+      if (!needsEmailConfirmation && data.session) {
+        // User is immediately signed in
         toast.success('Account created successfully!')
         navigate('/dashboard')
       } else {
-        // Fallback to verification flow if auto-confirm doesn't work
-        toast.success('Please check your email to confirm your account')
-        navigate('/verify-email')
+        // User created but needs confirmation
+        setEmailSent(true)
+        toast.success('Please check your email for a confirmation link')
       }
     } catch (error) {
       console.error('Signup error:', error)
@@ -49,6 +49,32 @@ export default function Signup() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (emailSent) {
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="card">
+          <h1 className="text-2xl font-bold text-center mb-6">Check Your Email</h1>
+          <div className="text-center mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">
+              We've sent a confirmation link to <strong>{email}</strong>
+            </p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Please check your email and click the link to activate your account.
+            </p>
+          </div>
+          <div className="mt-6 text-center">
+            <Link to="/login" className="btn btn-outline w-full">
+              Return to Login
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

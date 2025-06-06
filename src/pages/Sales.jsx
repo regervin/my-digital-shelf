@@ -4,6 +4,7 @@ import { FiSearch, FiFilter, FiDownload, FiEye } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { format } from 'date-fns'
+import toast from 'react-hot-toast'
 
 export default function Sales() {
   const { user } = useAuth()
@@ -18,81 +19,47 @@ export default function Sales() {
       try {
         setLoading(true)
         
-        // In a real app, this would be a query to your database
-        // For now, we'll simulate some data
-        setTimeout(() => {
-          const dummySales = [
-            { 
-              id: 1, 
-              customer: 'John Doe', 
-              email: 'john.doe@example.com',
-              product: 'Ultimate Web Design Course', 
-              amount: 49.99, 
-              date: new Date(2023, 10, 28),
-              status: 'completed'
-            },
-            { 
-              id: 2, 
-              customer: 'Jane Smith', 
-              email: 'jane.smith@example.com',
-              product: 'Digital Marketing Ebook', 
-              amount: 19.99, 
-              date: new Date(2023, 10, 27),
-              status: 'completed'
-            },
-            { 
-              id: 3, 
-              customer: 'Bob Johnson', 
-              email: 'bob.johnson@example.com',
-              product: 'Premium Membership', 
-              amount: 29.99, 
-              date: new Date(2023, 10, 26),
-              status: 'completed'
-            },
-            { 
-              id: 4, 
-              customer: 'Alice Brown', 
-              email: 'alice.brown@example.com',
-              product: 'SEO Toolkit', 
-              amount: 79.99, 
-              date: new Date(2023, 10, 25),
-              status: 'completed'
-            },
-            { 
-              id: 5, 
-              customer: 'Charlie Wilson', 
-              email: 'charlie.wilson@example.com',
-              product: 'Ultimate Web Design Course', 
-              amount: 49.99, 
-              date: new Date(2023, 10, 24),
-              status: 'completed'
-            },
-            { 
-              id: 6, 
-              customer: 'David Miller', 
-              email: 'david.miller@example.com',
-              product: 'Content Creation Templates', 
-              amount: 29.99, 
-              date: new Date(2023, 10, 23),
-              status: 'refunded'
-            },
-            { 
-              id: 7, 
-              customer: 'Emma Davis', 
-              email: 'emma.davis@example.com',
-              product: 'Digital Marketing Ebook', 
-              amount: 19.99, 
-              date: new Date(2023, 10, 22),
-              status: 'completed'
-            }
-          ]
-          
-          setSales(dummySales)
-          setLoading(false)
-        }, 800)
+        if (!user) return
         
+        const { data, error } = await supabase
+          .from('sales')
+          .select(`
+            id,
+            amount,
+            status,
+            created_at,
+            product_id,
+            membership_id,
+            customer_id,
+            products(name),
+            memberships(name),
+            customers(name, email)
+          `)
+          .order('created_at', { ascending: false })
+        
+        if (error) {
+          throw error
+        }
+        
+        // Transform the data to a more usable format
+        const formattedSales = data.map(sale => ({
+          id: sale.id,
+          customer: sale.customers?.name || 'Unknown Customer',
+          email: sale.customers?.email || 'unknown@example.com',
+          product: sale.products?.name || sale.memberships?.name || 'Unknown Product',
+          amount: parseFloat(sale.amount),
+          date: new Date(sale.created_at),
+          status: sale.status,
+          productId: sale.product_id,
+          membershipId: sale.membership_id,
+          customerId: sale.customer_id
+        }))
+        
+        setSales(formattedSales)
+        setLoading(false)
       } catch (error) {
         console.error('Error fetching sales:', error)
+        toast.error('Failed to load sales')
         setLoading(false)
       }
     }
@@ -121,13 +88,16 @@ export default function Sales() {
         const saleDate = new Date(sale.date)
         
         if (dateRange === '7days') {
-          const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7))
+          const sevenDaysAgo = new Date()
+          sevenDaysAgo.setDate(today.getDate() - 7)
           if (saleDate < sevenDaysAgo) return false
         } else if (dateRange === '30days') {
-          const thirtyDaysAgo = new Date(today.setDate(today.getDate() - 30))
+          const thirtyDaysAgo = new Date()
+          thirtyDaysAgo.setDate(today.getDate() - 30)
           if (saleDate < thirtyDaysAgo) return false
         } else if (dateRange === '90days') {
-          const ninetyDaysAgo = new Date(today.setDate(today.getDate() - 90))
+          const ninetyDaysAgo = new Date()
+          ninetyDaysAgo.setDate(today.getDate() - 90)
           if (saleDate < ninetyDaysAgo) return false
         }
       }
@@ -140,11 +110,42 @@ export default function Sales() {
   const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.amount, 0)
   const totalRefunded = filteredSales.filter(sale => sale.status === 'refunded').length
 
+  const handleExportCSV = () => {
+    // Create CSV content
+    const headers = ['Date', 'Customer', 'Email', 'Product', 'Amount', 'Status']
+    const csvContent = [
+      headers.join(','),
+      ...filteredSales.map(sale => [
+        format(sale.date, 'yyyy-MM-dd'),
+        `"${sale.customer.replace(/"/g, '""')}"`,
+        `"${sale.email.replace(/"/g, '""')}"`,
+        `"${sale.product.replace(/"/g, '""')}"`,
+        sale.amount.toFixed(2),
+        sale.status
+      ].join(','))
+    ].join('\n')
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `sales-export-${format(new Date(), 'yyyy-MM-dd')}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    toast.success('Sales data exported successfully')
+  }
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Sales</h1>
-        <button className="btn btn-outline mt-2 sm:mt-0">
+        <button 
+          className="btn btn-outline mt-2 sm:mt-0"
+          onClick={handleExportCSV}
+        >
           <FiDownload className="mr-2" />
           Export CSV
         </button>
@@ -256,9 +257,9 @@ export default function Sales() {
                     </td>
                     <td className="py-3">
                       <div className="flex space-x-2">
-                        <button className="text-gray-500 hover:text-primary-600">
+                        <Link to={`/sales/${sale.id}`} className="text-gray-500 hover:text-primary-600">
                           <FiEye />
-                        </button>
+                        </Link>
                       </div>
                     </td>
                   </tr>

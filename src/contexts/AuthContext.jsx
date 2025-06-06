@@ -31,21 +31,24 @@ export function AuthProvider({ children }) {
 
   // Sign up with email and password
   const signUp = async (email, password) => {
-    // For development, we'll disable email confirmation
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        // In development, we'll auto-confirm users
-        data: {
-          email_confirmed: true
+    try {
+      // Use the site URL as the redirect URL
+      const siteUrl = window.location.origin
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${siteUrl}/auth/callback`
         }
-      }
-    })
-    
-    if (error) throw error
-    return data
+      })
+      
+      if (error) throw error
+      return { data, needsEmailConfirmation: !data.session }
+    } catch (error) {
+      console.error("SignUp error:", error)
+      throw error
+    }
   }
 
   // Sign in with email and password
@@ -67,8 +70,10 @@ export function AuthProvider({ children }) {
 
   // Reset password
   const resetPassword = async (email) => {
+    const siteUrl = window.location.origin
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${siteUrl}/update-password`,
     })
     
     if (error) throw error
@@ -83,6 +88,21 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
+  // Resend confirmation email
+  const resendConfirmationEmail = async (email) => {
+    const siteUrl = window.location.origin
+    
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: `${siteUrl}/auth/callback`,
+      }
+    })
+    
+    if (error) throw error
+  }
+
   const value = {
     user,
     loading,
@@ -91,6 +111,7 @@ export function AuthProvider({ children }) {
     signOut,
     resetPassword,
     updatePassword,
+    resendConfirmationEmail
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

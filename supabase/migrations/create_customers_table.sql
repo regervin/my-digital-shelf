@@ -5,10 +5,9 @@
     - `customers`
       - `id` (uuid, primary key)
       - `name` (text, not null)
-      - `email` (text, not null)
-      - `total_spent` (numeric)
-      - `purchases` (integer)
-      - `status` (text)
+      - `email` (text, not null, unique)
+      - `phone` (text)
+      - `notes` (text)
       - `seller_id` (uuid, foreign key to auth.users)
       - `created_at` (timestamptz)
       - `updated_at` (timestamptz)
@@ -21,12 +20,12 @@ CREATE TABLE IF NOT EXISTS customers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   email text NOT NULL,
-  total_spent numeric DEFAULT 0,
-  purchases integer DEFAULT 0,
-  status text DEFAULT 'active',
+  phone text,
+  notes text,
   seller_id uuid REFERENCES auth.users(id) NOT NULL,
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(email, seller_id)
 );
 
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;

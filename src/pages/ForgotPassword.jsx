@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
   const { resetPassword } = useAuth()
 
   const handleSubmit = async (e) => {
@@ -20,33 +20,34 @@ export default function ForgotPassword() {
     try {
       setLoading(true)
       await resetPassword(email)
-      setSubmitted(true)
-      toast.success('Password reset link sent to your email')
+      setEmailSent(true)
+      toast.success('Password reset email sent')
     } catch (error) {
       console.error('Reset password error:', error)
-      toast.error(error.message || 'Failed to send reset link')
+      toast.error(error.message || 'Failed to send reset email')
     } finally {
       setLoading(false)
     }
   }
 
-  if (submitted) {
+  if (emailSent) {
     return (
       <div className="max-w-md mx-auto">
         <div className="card">
+          <h1 className="text-2xl font-bold text-center mb-6">Check Your Email</h1>
           <div className="text-center mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            <h1 className="text-2xl font-bold mt-4">Check your email</h1>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">
+              We've sent a password reset link to <strong>{email}</strong>
+            </p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Please check your email and click the link to reset your password.
+            </p>
           </div>
-          
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
-            We've sent a password reset link to <strong>{email}</strong>. Please check your email and follow the instructions.
-          </p>
-          
-          <div className="flex justify-center">
-            <Link to="/login" className="btn btn-primary">
+          <div className="mt-6 text-center">
+            <Link to="/login" className="btn btn-outline w-full">
               Return to Login
             </Link>
           </div>
@@ -74,6 +75,9 @@ export default function ForgotPassword() {
               placeholder="your@email.com"
               required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              We'll send a password reset link to this email
+            </p>
           </div>
           
           <button
@@ -87,7 +91,7 @@ export default function ForgotPassword() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Sending reset link...
+                Sending email...
               </span>
             ) : (
               'Send Reset Link'

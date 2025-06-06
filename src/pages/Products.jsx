@@ -4,6 +4,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiEye, FiSearch, FiFilter } from 'react-icon
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { format } from 'date-fns'
+import toast from 'react-hot-toast'
 
 export default function Products() {
   const { user } = useAuth()
@@ -17,63 +18,22 @@ export default function Products() {
       try {
         setLoading(true)
         
-        // In a real app, this would be a query to your database
-        // For now, we'll simulate some data
-        setTimeout(() => {
-          const dummyProducts = [
-            { 
-              id: 1, 
-              name: 'Ultimate Web Design Course', 
-              type: 'course', 
-              price: 49.99, 
-              sales: 24, 
-              created_at: new Date(2023, 9, 15),
-              status: 'active'
-            },
-            { 
-              id: 2, 
-              name: 'Digital Marketing Ebook', 
-              type: 'ebook', 
-              price: 19.99, 
-              sales: 37, 
-              created_at: new Date(2023, 8, 22),
-              status: 'active'
-            },
-            { 
-              id: 3, 
-              name: 'SEO Toolkit', 
-              type: 'software', 
-              price: 79.99, 
-              sales: 18, 
-              created_at: new Date(2023, 10, 5),
-              status: 'active'
-            },
-            { 
-              id: 4, 
-              name: 'Content Creation Templates', 
-              type: 'templates', 
-              price: 29.99, 
-              sales: 45, 
-              created_at: new Date(2023, 7, 10),
-              status: 'active'
-            },
-            { 
-              id: 5, 
-              name: 'Social Media Graphics Pack', 
-              type: 'graphics', 
-              price: 39.99, 
-              sales: 0, 
-              created_at: new Date(2023, 10, 25),
-              status: 'draft'
-            }
-          ]
-          
-          setProducts(dummyProducts)
-          setLoading(false)
-        }, 800)
+        if (!user) return
         
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false })
+        
+        if (error) {
+          throw error
+        }
+        
+        setProducts(data || [])
+        setLoading(false)
       } catch (error) {
         console.error('Error fetching products:', error)
+        toast.error('Failed to load products')
         setLoading(false)
       }
     }
@@ -96,9 +56,25 @@ export default function Products() {
       return true
     })
 
-  const handleDelete = (id) => {
-    // In a real app, this would delete from the database
-    setProducts(products.filter(product => product.id !== id))
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this product?')) return
+    
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id)
+      
+      if (error) {
+        throw error
+      }
+      
+      setProducts(products.filter(product => product.id !== id))
+      toast.success('Product deleted successfully')
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      toast.error('Failed to delete product')
+    }
   }
 
   return (
@@ -168,8 +144,8 @@ export default function Products() {
                   <tr key={product.id} className="border-t border-gray-200 dark:border-gray-700">
                     <td className="py-3 font-medium">{product.name}</td>
                     <td className="py-3 capitalize">{product.type}</td>
-                    <td className="py-3">${product.price.toFixed(2)}</td>
-                    <td className="py-3">{product.sales}</td>
+                    <td className="py-3">${parseFloat(product.price).toFixed(2)}</td>
+                    <td className="py-3">{product.total_sales || 0}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         product.status === 'active' 
@@ -179,7 +155,7 @@ export default function Products() {
                         {product.status}
                       </span>
                     </td>
-                    <td className="py-3">{format(product.created_at, 'MMM dd, yyyy')}</td>
+                    <td className="py-3">{format(new Date(product.created_at), 'MMM dd, yyyy')}</td>
                     <td className="py-3">
                       <div className="flex space-x-2">
                         <Link to={`/products/${product.id}`} className="text-gray-500 hover:text-primary-600">

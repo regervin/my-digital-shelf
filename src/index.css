@@ -2,41 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light dark;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
 @layer components {
-  .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
-  }
-  
-  .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700;
-  }
-  
-  .btn-outline {
-    @apply border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800;
+  .card {
+    @apply bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 border border-gray-200 dark:border-gray-700;
   }
   
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-800 dark:border-gray-700;
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
+    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+    bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100;
   }
   
-  .card {
-    @apply bg-white dark:bg-gray-900 rounded-lg shadow-md p-6;
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200
+    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500
+    disabled:opacity-50 disabled:cursor-not-allowed;
   }
+  
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white;
+  }
+  
+  .btn-outline {
+    @apply border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700
+    text-gray-700 dark:text-gray-300;
+  }
+}
+
+:root {
+  --color-primary-50: 239 246 255;
+  --color-primary-100: 219 234 254;
+  --color-primary-200: 191 219 254;
+  --color-primary-300: 147 197 253;
+  --color-primary-400: 96 165 250;
+  --color-primary-500: 59 130 246;
+  --color-primary-600: 37 99 235;
+  --color-primary-700: 29 78 216;
+  --color-primary-800: 30 64 175;
+  --color-primary-900: 30 58 138;
+  --color-primary-950: 23 37 84;
+}
+
+/* Dark mode adjustments */
+.dark {
+  color-scheme: dark;
 }

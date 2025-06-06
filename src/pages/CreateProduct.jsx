@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { FiSave, FiUpload, FiDollarSign, FiPackage, FiFileText, FiLink } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { v4 as uuidv4 } from 'uuid'
 import toast from 'react-hot-toast'
 
 export default function CreateProduct() {
@@ -16,9 +15,11 @@ export default function CreateProduct() {
     type: 'ebook',
     price: '',
     status: 'draft',
-    downloadUrl: '',
-    licenseType: 'standard',
-    downloadLimit: 3
+    download_url: '',
+    license_type: 'standard',
+    download_limit: 3,
+    file_size: '',
+    file_type: ''
   })
   
   const [file, setFile] = useState(null)
@@ -31,7 +32,16 @@ export default function CreateProduct() {
   
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+      const selectedFile = e.target.files[0]
+      setFile(selectedFile)
+      
+      // Update file size and type
+      const fileSizeInMB = (selectedFile.size / (1024 * 1024)).toFixed(2)
+      setFormData(prev => ({
+        ...prev,
+        file_size: `${fileSizeInMB} MB`,
+        file_type: selectedFile.type.split('/')[1].toUpperCase()
+      }))
     }
   }
   
@@ -46,17 +56,73 @@ export default function CreateProduct() {
     try {
       setIsSubmitting(true)
       
-      // In a real app, this would upload the file to storage and save product data
-      // For now, we'll simulate success
+      // Upload file if selected
+      let fileUrl = formData.download_url
       
-      setTimeout(() => {
-        toast.success('Product created successfully!')
-        navigate('/products')
-      }, 1500)
+      if (file) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+        const filePath = `${user.id}/${fileName}`
+        
+        console.log('Uploading file to path:', filePath)
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from('product_files')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          })
+        
+        if (uploadError) {
+          console.error('File upload error:', uploadError)
+          throw uploadError
+        }
+        
+        console.log('File uploaded successfully:', data)
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('product_files')
+          .getPublicUrl(filePath)
+        
+        fileUrl = publicUrl
+        console.log('File public URL:', fileUrl)
+      }
       
+      // Create product in database
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        type: formData.type,
+        price: parseFloat(formData.price),
+        status: formData.status,
+        download_url: fileUrl,
+        license_type: formData.license_type,
+        download_limit: parseInt(formData.download_limit),
+        file_size: formData.file_size,
+        file_type: formData.file_type,
+        user_id: user.id
+      }
+      
+      console.log('Creating product with data:', productData)
+      
+      const { error, data } = await supabase
+        .from('products')
+        .insert(productData)
+        .select()
+      
+      if (error) {
+        console.error('Database insert error:', error)
+        throw error
+      }
+      
+      console.log('Product created successfully:', data)
+      
+      toast.success('Product created successfully!')
+      navigate('/products')
     } catch (error) {
       console.error('Error creating product:', error)
-      toast.error('Failed to create product')
+      toast.error(`Failed to create product: ${error.message || 'Unknown error'}`)
       setIsSubmitting(false)
     }
   }
@@ -200,8 +266,8 @@ export default function CreateProduct() {
               </div>
               <input
                 type="url"
-                name="downloadUrl"
-                value={formData.downloadUrl}
+                name="download_url"
+                value={formData.download_url}
                 onChange={handleChange}
                 placeholder="https://example.com/download/file.pdf"
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -219,8 +285,8 @@ export default function CreateProduct() {
               License Type
             </label>
             <select
-              name="licenseType"
-              value={formData.licenseType}
+              name="license_type"
+              value={formData.license_type}
               onChange={handleChange}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-2"
             >
@@ -236,8 +302,8 @@ export default function CreateProduct() {
             </label>
             <input
               type="number"
-              name="downloadLimit"
-              value={formData.downloadLimit}
+              name="download_limit"
+              value={formData.download_limit}
               onChange={handleChange}
               min="1"
               max="100"
