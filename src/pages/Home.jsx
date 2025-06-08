@@ -22,7 +22,7 @@ export default function Home() {
             </Link>
           ) : (
             <>
-              <Link to="/signup" className="btn btn-primary px-8 py-3 text-lg">
+              <Link to="/register" className="btn btn-primary px-8 py-3 text-lg">
                 Get Started
               </Link>
               <Link to="/login" className="btn btn-outline px-8 py-3 text-lg">
@@ -142,7 +142,7 @@ export default function Home() {
             Go to Dashboard
           </Link>
         ) : (
-          <Link to="/signup" className="btn btn-primary px-8 py-3 text-lg">
+          <Link to="/register" className="btn btn-primary px-8 py-3 text-lg">
             Create Your Account
           </Link>
         )}

@@ -42,7 +42,7 @@ export default function CreateMembership() {
         .insert([
           { 
             ...formData, 
-            user_id: user.id,
+            seller_id: user.id,
             price: parseFloat(formData.price)
           }
         ])

@@ -2,78 +2,27 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { FiSearch, FiFilter, FiDownload, FiEye } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
+import { useSales } from '../hooks/useSales'
 import { format } from 'date-fns'
-import toast from 'react-hot-toast'
 
 export default function Sales() {
   const { user } = useAuth()
-  const [sales, setSales] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { sales, loading } = useSales()
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState('all')
   const [dateRange, setDateRange] = useState('all')
 
-  useEffect(() => {
-    async function fetchSales() {
-      try {
-        setLoading(true)
-        
-        if (!user) return
-        
-        const { data, error } = await supabase
-          .from('sales')
-          .select(`
-            id,
-            amount,
-            status,
-            created_at,
-            product_id,
-            membership_id,
-            customer_id,
-            products(name),
-            memberships(name),
-            customers(name, email)
-          `)
-          .order('created_at', { ascending: false })
-        
-        if (error) {
-          throw error
-        }
-        
-        // Transform the data to a more usable format
-        const formattedSales = data.map(sale => ({
-          id: sale.id,
-          customer: sale.customers?.name || 'Unknown Customer',
-          email: sale.customers?.email || 'unknown@example.com',
-          product: sale.products?.name || sale.memberships?.name || 'Unknown Product',
-          amount: parseFloat(sale.amount),
-          date: new Date(sale.created_at),
-          status: sale.status,
-          productId: sale.product_id,
-          membershipId: sale.membership_id,
-          customerId: sale.customer_id
-        }))
-        
-        setSales(formattedSales)
-        setLoading(false)
-      } catch (error) {
-        console.error('Error fetching sales:', error)
-        toast.error('Failed to load sales')
-        setLoading(false)
-      }
-    }
-    
-    fetchSales()
-  }, [user])
-
   const filteredSales = sales
     .filter(sale => {
       // Apply search filter
+      const customerName = sale.customer?.name || ''
+      const productName = sale.product?.name || sale.membership?.name || ''
+      const customerEmail = sale.customer?.email || ''
+      
       if (searchTerm && 
-          !sale.customer.toLowerCase().includes(searchTerm.toLowerCase()) && 
-          !sale.product.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          !sale.email.toLowerCase().includes(searchTerm.toLowerCase())) {
+          !customerName.toLowerCase().includes(searchTerm.toLowerCase()) && 
+          !productName.toLowerCase().includes(searchTerm.toLowerCase()) &&
+          !customerEmail.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false
       }
       
@@ -85,19 +34,16 @@ export default function Sales() {
       // Apply date range filter
       if (dateRange !== 'all') {
         const today = new Date()
-        const saleDate = new Date(sale.date)
+        const saleDate = new Date(sale.created_at)
         
         if (dateRange === '7days') {
-          const sevenDaysAgo = new Date()
-          sevenDaysAgo.setDate(today.getDate() - 7)
+          const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7))
           if (saleDate < sevenDaysAgo) return false
         } else if (dateRange === '30days') {
-          const thirtyDaysAgo = new Date()
-          thirtyDaysAgo.setDate(today.getDate() - 30)
+          const thirtyDaysAgo = new Date(today.setDate(today.getDate() - 30))
           if (saleDate < thirtyDaysAgo) return false
         } else if (dateRange === '90days') {
-          const ninetyDaysAgo = new Date()
-          ninetyDaysAgo.setDate(today.getDate() - 90)
+          const ninetyDaysAgo = new Date(today.setDate(today.getDate() - 90))
           if (saleDate < ninetyDaysAgo) return false
         }
       }
@@ -107,45 +53,14 @@ export default function Sales() {
 
   // Calculate totals
   const totalSales = filteredSales.length
-  const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.amount, 0)
+  const totalRevenue = filteredSales.reduce((sum, sale) => sum + Number(sale.amount), 0)
   const totalRefunded = filteredSales.filter(sale => sale.status === 'refunded').length
-
-  const handleExportCSV = () => {
-    // Create CSV content
-    const headers = ['Date', 'Customer', 'Email', 'Product', 'Amount', 'Status']
-    const csvContent = [
-      headers.join(','),
-      ...filteredSales.map(sale => [
-        format(sale.date, 'yyyy-MM-dd'),
-        `"${sale.customer.replace(/"/g, '""')}"`,
-        `"${sale.email.replace(/"/g, '""')}"`,
-        `"${sale.product.replace(/"/g, '""')}"`,
-        sale.amount.toFixed(2),
-        sale.status
-      ].join(','))
-    ].join('\n')
-    
-    // Create download link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.setAttribute('href', url)
-    link.setAttribute('download', `sales-export-${format(new Date(), 'yyyy-MM-dd')}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    
-    toast.success('Sales data exported successfully')
-  }
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Sales</h1>
-        <button 
-          className="btn btn-outline mt-2 sm:mt-0"
-          onClick={handleExportCSV}
-        >
+        <button className="btn btn-outline mt-2 sm:mt-0">
           <FiDownload className="mr-2" />
           Export CSV
         </button>
@@ -228,7 +143,7 @@ export default function Sales() {
                 <tr className="text-left text-gray-500 dark:text-gray-400 text-sm">
                   <th className="pb-3">Date</th>
                   <th className="pb-3">Customer</th>
-                  <th className="pb-3">Product</th>
+                  <th className="pb-3">Product/Membership</th>
                   <th className="pb-3">Amount</th>
                   <th className="pb-3">Status</th>
                   <th className="pb-3">Actions</th>
@@ -237,15 +152,15 @@ export default function Sales() {
               <tbody>
                 {filteredSales.map((sale) => (
                   <tr key={sale.id} className="border-t border-gray-200 dark:border-gray-700">
-                    <td className="py-3">{format(sale.date, 'MMM dd, yyyy')}</td>
+                    <td className="py-3">{format(new Date(sale.created_at), 'MMM dd, yyyy')}</td>
                     <td className="py-3">
                       <div>
-                        <div className="font-medium">{sale.customer}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{sale.email}</div>
+                        <div className="font-medium">{sale.customer?.name || 'Unknown'}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{sale.customer?.email || 'No email'}</div>
                       </div>
                     </td>
-                    <td className="py-3">{sale.product}</td>
-                    <td className="py-3">${sale.amount.toFixed(2)}</td>
+                    <td className="py-3">{sale.product?.name || sale.membership?.name || 'Unknown'}</td>
+                    <td className="py-3">${Number(sale.amount).toFixed(2)}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         sale.status === 'completed' 
@@ -257,9 +172,9 @@ export default function Sales() {
                     </td>
                     <td className="py-3">
                       <div className="flex space-x-2">
-                        <Link to={`/sales/${sale.id}`} className="text-gray-500 hover:text-primary-600">
+                        <button className="text-gray-500 hover:text-primary-600">
                           <FiEye />
-                        </Link>
+                        </button>
                       </div>
                     </td>
                   </tr>

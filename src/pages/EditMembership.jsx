@@ -43,6 +43,7 @@ export default function EditMembership() {
         .from('memberships')
         .select('*')
         .eq('id', id)
+        .eq('seller_id', user.id) // Security check
         .single()
       
       if (error) {
@@ -116,6 +117,7 @@ export default function EditMembership() {
           updated_at: new Date()
         })
         .eq('id', id)
+        .eq('seller_id', user.id) // Security check
       
       if (error) {
         throw error

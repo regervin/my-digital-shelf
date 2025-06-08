@@ -1,20 +1,24 @@
-import { useState } from 'react'
-import { FiSave, FiCreditCard, FiMail, FiGlobe, FiLock } from 'react-icons/fi'
+import { useState, useEffect } from 'react'
+import { FiSave, FiCreditCard, FiMail, FiGlobe, FiLock, FiDollarSign } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useProfile } from '../hooks/useProfile'
+import { usePaymentSettings } from '../hooks/usePaymentSettings'
 import toast from 'react-hot-toast'
 
 export default function Settings() {
   const { user } = useAuth()
+  const { profile, loading: profileLoading, updateProfile } = useProfile()
+  const { paymentSettings, loading: paymentLoading, updatePaymentSettings } = usePaymentSettings()
   
   const [activeTab, setActiveTab] = useState('profile')
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   const [profileData, setProfileData] = useState({
-    name: 'John Doe',
-    email: user?.email || '',
-    company: 'Example Company',
-    website: 'https://example.com'
+    name: '',
+    email: '',
+    company: '',
+    website: ''
   })
   
   const [passwordData, setPasswordData] = useState({
@@ -24,9 +28,33 @@ export default function Settings() {
   })
   
   const [paymentData, setPaymentData] = useState({
-    paypalEmail: '',
-    stripeConnected: false
+    paypal_email: '',
+    payout_schedule: 'instant',
+    minimum_payout_amount: 0
   })
+  
+  // Update form data when profile is loaded
+  useEffect(() => {
+    if (profile) {
+      setProfileData({
+        name: profile.name || '',
+        email: profile.email || user?.email || '',
+        company: profile.company || '',
+        website: profile.website || ''
+      })
+    }
+  }, [profile, user])
+  
+  // Update payment form data when payment settings are loaded
+  useEffect(() => {
+    if (paymentSettings) {
+      setPaymentData({
+        paypal_email: paymentSettings.paypal_email || '',
+        payout_schedule: paymentSettings.payout_schedule || 'instant',
+        minimum_payout_amount: paymentSettings.minimum_payout_amount || 0
+      })
+    }
+  }, [paymentSettings])
   
   const handleProfileChange = (e) => {
     const { name, value } = e.target
@@ -49,17 +77,30 @@ export default function Settings() {
     try {
       setIsSubmitting(true)
       
-      // In a real app, this would update the user profile
-      // For now, we'll simulate success
+      // Log the data being sent
+      console.log('Updating profile with data:', {
+        name: profileData.name,
+        company: profileData.company,
+        website: profileData.website
+      })
       
-      setTimeout(() => {
-        toast.success('Profile updated successfully!')
-        setIsSubmitting(false)
-      }, 1000)
+      const { success, error, data } = await updateProfile({
+        name: profileData.name,
+        company: profileData.company,
+        website: profileData.website
+      })
       
+      console.log('Update profile response:', { success, error, data })
+      
+      if (!success) {
+        throw error || new Error('Failed to update profile')
+      }
+      
+      toast.success('Profile updated successfully!')
     } catch (error) {
       console.error('Error updating profile:', error)
-      toast.error('Failed to update profile')
+      toast.error(`Failed to update profile: ${error.message || 'Unknown error'}`)
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -75,22 +116,24 @@ export default function Settings() {
     try {
       setIsSubmitting(true)
       
-      // In a real app, this would update the password
-      // For now, we'll simulate success
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      })
       
-      setTimeout(() => {
-        toast.success('Password updated successfully!')
-        setPasswordData({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        })
-        setIsSubmitting(false)
-      }, 1000)
+      if (error) {
+        throw error
+      }
       
+      toast.success('Password updated successfully!')
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
     } catch (error) {
       console.error('Error updating password:', error)
-      toast.error('Failed to update password')
+      toast.error('Failed to update password: ' + error.message)
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -101,19 +144,39 @@ export default function Settings() {
     try {
       setIsSubmitting(true)
       
-      // In a real app, this would update payment settings
-      // For now, we'll simulate success
+      const { success, error } = await updatePaymentSettings({
+        paypal_email: paymentData.paypal_email,
+        payout_schedule: paymentData.payout_schedule,
+        minimum_payout_amount: parseFloat(paymentData.minimum_payout_amount) || 0
+      })
       
-      setTimeout(() => {
-        toast.success('Payment settings updated successfully!')
-        setIsSubmitting(false)
-      }, 1000)
+      if (!success) {
+        throw error || new Error('Failed to update payment settings')
+      }
       
+      toast.success('Payment settings updated successfully!')
     } catch (error) {
       console.error('Error updating payment settings:', error)
-      toast.error('Failed to update payment settings')
+      toast.error(`Failed to update payment settings: ${error.message || 'Unknown error'}`)
+    } finally {
       setIsSubmitting(false)
     }
+  }
+  
+  const handlePayoutScheduleChange = (e) => {
+    setPaymentData(prev => ({ ...prev, payout_schedule: e.target.value }))
+  }
+  
+  const handleMinimumPayoutChange = (e) => {
+    setPaymentData(prev => ({ ...prev, minimum_payout_amount: parseFloat(e.target.value) || 0 }))
+  }
+  
+  if (profileLoading || paymentLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      </div>
+    )
   }
   
   return (
@@ -365,30 +428,41 @@ export default function Settings() {
                       </div>
                       <div>
                         <label className="inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" checked />
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={!!paymentData.paypal_email}
+                            onChange={(e) => {
+                              if (!e.target.checked) {
+                                setPaymentData(prev => ({ ...prev, paypal_email: '' }))
+                              }
+                            }}
+                          />
                           <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
                         </label>
                       </div>
                     </div>
                     
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        PayPal Email
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <FiMail className="text-gray-400" />
+                    {!!paymentData.paypal_email || paymentData.paypal_email === '' ? (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          PayPal Email
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <FiMail className="text-gray-400" />
+                          </div>
+                          <input
+                            type="email"
+                            name="paypal_email"
+                            value={paymentData.paypal_email}
+                            onChange={handlePaymentChange}
+                            placeholder="your-paypal-email@example.com"
+                            className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          />
                         </div>
-                        <input
-                          type="email"
-                          name="paypalEmail"
-                          value={paymentData.paypalEmail}
-                          onChange={handlePaymentChange}
-                          placeholder="your-paypal-email@example.com"
-                          className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        />
                       </div>
-                    </div>
+                    ) : null}
                   </div>
                   
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
@@ -428,6 +502,8 @@ export default function Settings() {
                       </label>
                       <select
                         className="w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-2"
+                        value={paymentData.payout_schedule}
+                        onChange={handlePayoutScheduleChange}
                       >
                         <option value="instant">Instant (after each sale)</option>
                         <option value="daily">Daily</option>
@@ -449,6 +525,8 @@ export default function Settings() {
                           min="0"
                           step="0.01"
                           placeholder="50.00"
+                          value={paymentData.minimum_payout_amount}
+                          onChange={handleMinimumPayoutChange}
                           className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                         />
                       </div>
