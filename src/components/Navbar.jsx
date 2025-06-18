@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import NotificationBell from './NotificationBell'
 import { FiMenu, FiX, FiUser, FiLogOut, FiMoon, FiSun } from 'react-icons/fi'
 import { useDarkMode } from '../hooks/useDarkMode'
 
@@ -52,7 +51,6 @@ export default function Navbar() {
                 >
                   Dashboard
                 </Link>
-                <NotificationBell />
                 
                 <div className="relative">
                   <button
@@ -136,8 +134,6 @@ export default function Navbar() {
             >
               {isDarkMode ? <FiSun size={20} /> : <FiMoon size={20} />}
             </button>
-            
-            {user && <NotificationBell />}
             
             <button
               onClick={toggleMobileMenu}

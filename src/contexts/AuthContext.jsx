@@ -45,33 +45,24 @@ export function AuthProvider({ children }) {
 
   const fetchUserData = async (userId) => {
     try {
-      // First check if user is in profiles table and get role
+      // Direct query to avoid recursion - just get the role
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
-      if (profileError && profileError.code !== 'PGRST116') {
+      if (profileError) {
         console.error('Error fetching user profile:', profileError);
+        throw profileError;
       }
-      
-      // Then check if user is in admin_users table
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', userId)
-        .single();
-      
-      if (adminError && adminError.code !== 'PGRST116') {
-        console.error('Error checking admin status:', adminError);
-      }
-      
-      // Set admin status based on admin_users table
-      setIsAdmin(!!adminData);
       
       // Set role from profiles table, defaulting to 'user' if not found
-      setUserRole(profileData?.role || 'user');
+      const role = profileData?.role || 'user';
+      setUserRole(role);
+      
+      // Set admin status based on role
+      setIsAdmin(role === 'admin');
     } catch (err) {
       console.error('Error in fetchUserData:', err);
       setUserRole('user'); // Default role if error
@@ -93,6 +84,23 @@ export function AuthProvider({ children }) {
       
       if (error) {
         throw error;
+      }
+      
+      // Create a default profile for the new user
+      if (data?.user) {
+        try {
+          await supabase
+            .from('profiles')
+            .insert([{ 
+              id: data.user.id, 
+              role: 'user',
+              created_at: new Date().toISOString()
+            }]);
+        } catch (profileError) {
+          console.error('Error creating initial profile:', profileError);
+          // Continue with signup even if profile creation fails
+          // The profile can be created later
+        }
       }
       
       return { success: true, data };
@@ -139,6 +147,12 @@ export function AuthProvider({ children }) {
       if (error) {
         throw error;
       }
+      
+      // Explicitly clear user state after successful sign out
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      setIsAdmin(false);
       
       return { success: true };
     } catch (err) {

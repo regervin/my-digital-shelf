@@ -35,14 +35,13 @@ export default function Sidebar() {
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }`
             }
+            end
           >
             <div className="flex items-center">
               <span className="mr-3">{item.icon}</span>
               <span>{item.label}</span>
             </div>
-            <FiChevronRight className={({ isActive }) => 
-              `w-4 h-4 transition-transform duration-200 ${isActive ? 'transform rotate-90 opacity-100' : 'opacity-0'}`
-            } />
+            <FiChevronRight className="w-4 h-4 transition-transform duration-200 opacity-0 group-hover:opacity-100" />
           </NavLink>
         ))}
       </nav>

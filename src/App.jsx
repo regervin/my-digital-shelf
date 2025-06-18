@@ -1,79 +1,76 @@
-import { Routes, Route } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
-import ProtectedRoute from './components/ProtectedRoute'
-import Home from './pages/Home'
-import Login from './pages/Login'
-import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
-import CreateProduct from './pages/CreateProduct'
-import ProductDetails from './pages/ProductDetails'
-import EditProduct from './pages/EditProduct'
-import Memberships from './pages/Memberships'
-import CreateMembership from './pages/CreateMembership'
-import MembershipDetails from './pages/MembershipDetails'
-import EditMembership from './pages/EditMembership'
 import Customers from './pages/Customers'
-import CreateCustomer from './pages/CreateCustomer'
-import CustomerDetails from './pages/CustomerDetails'
-import EditCustomer from './pages/EditCustomer'
 import Sales from './pages/Sales'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
-import NotFound from './pages/NotFound'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import Home from './pages/Home'
+import PrivateRoute from './components/PrivateRoute'
+import { useAuth } from './contexts/AuthContext'
 
 function App() {
+  const { loading } = useAuth() || { loading: true };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    )
+  }
+  
   return (
-    <>
-      <Toaster position="top-right" />
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-          
-          <Route path="dashboard" element={<ProtectedRoute />}>
-            <Route index element={<Dashboard />} />
-          </Route>
-          
-          <Route path="products" element={<ProtectedRoute />}>
-            <Route index element={<Products />} />
-            <Route path="new" element={<CreateProduct />} />
-            <Route path=":id" element={<ProductDetails />} />
-            <Route path="edit/:id" element={<EditProduct />} />
-          </Route>
-          
-          <Route path="memberships" element={<ProtectedRoute />}>
-            <Route index element={<Memberships />} />
-            <Route path="new" element={<CreateMembership />} />
-            <Route path=":id" element={<MembershipDetails />} />
-            <Route path="edit/:id" element={<EditMembership />} />
-          </Route>
-          
-          <Route path="customers" element={<ProtectedRoute />}>
-            <Route index element={<Customers />} />
-            <Route path="new" element={<CreateCustomer />} />
-            <Route path=":id" element={<CustomerDetails />} />
-            <Route path="edit/:id" element={<EditCustomer />} />
-          </Route>
-          
-          <Route path="sales" element={<ProtectedRoute />}>
-            <Route index element={<Sales />} />
-          </Route>
-          
-          <Route path="analytics" element={<ProtectedRoute />}>
-            <Route index element={<Analytics />} />
-          </Route>
-          
-          <Route path="settings" element={<ProtectedRoute />}>
-            <Route index element={<Settings />} />
-          </Route>
-          
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </>
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        {/* Public routes */}
+        <Route index element={<Home />} />
+        <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="reset-password" element={<ResetPassword />} />
+        
+        {/* Protected routes */}
+        <Route path="dashboard" element={
+          <PrivateRoute>
+            <Dashboard />
+          </PrivateRoute>
+        } />
+        <Route path="products" element={
+          <PrivateRoute>
+            <Products />
+          </PrivateRoute>
+        } />
+        <Route path="customers" element={
+          <PrivateRoute>
+            <Customers />
+          </PrivateRoute>
+        } />
+        <Route path="sales" element={
+          <PrivateRoute>
+            <Sales />
+          </PrivateRoute>
+        } />
+        <Route path="analytics" element={
+          <PrivateRoute>
+            <Analytics />
+          </PrivateRoute>
+        } />
+        <Route path="settings" element={
+          <PrivateRoute>
+            <Settings />
+          </PrivateRoute>
+        } />
+        
+        {/* Fallback route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   )
 }
 

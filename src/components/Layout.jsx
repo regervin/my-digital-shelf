@@ -6,7 +6,8 @@ import { useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
 export default function Layout() {
-  const { user } = useAuth()
+  // Add a fallback object to prevent destructuring errors
+  const { user } = useAuth() || { user: null };
   const location = useLocation()
   
   // Check if the current route is a dashboard route
