@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Loader, Save, CreditCard } from 'lucide-react';
-import { usePaymentSettings } from '../../hooks/usePaymentSettings';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { Loader, Save, CreditCard } from 'lucide-react';
 
 export default function PaymentSettings() {
-  const { user } = useAuth() || { user: null };
-  const { paymentSettings, loading, error, updatePaymentSettings } = usePaymentSettings();
+  const { user } = useAuth();
+  const [paymentSettings, setPaymentSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
   
@@ -15,97 +17,134 @@ export default function PaymentSettings() {
     minimum_payout_amount: 0
   });
   
-  // Debug logs
+  // Fetch payment settings
   useEffect(() => {
-    console.log('PaymentSettings component mounted');
-    console.log('User:', user);
-    console.log('Initial loading state:', loading);
-    console.log('Initial error state:', error);
-    console.log('Initial paymentSettings:', paymentSettings);
-  }, []);
-  
-  // Update logs when dependencies change
-  useEffect(() => {
-    console.log('Loading state changed:', loading);
-  }, [loading]);
-  
-  useEffect(() => {
-    console.log('Error state changed:', error);
-  }, [error]);
-  
-  useEffect(() => {
-    console.log('Payment settings changed:', paymentSettings);
-  }, [paymentSettings]);
-  
-  // Update form data when payment settings are loaded
-  useEffect(() => {
-    if (paymentSettings) {
-      console.log('Updating form data with payment settings:', paymentSettings);
-      setFormData({
-        paypal_email: paymentSettings.paypal_email || '',
-        payout_schedule: paymentSettings.payout_schedule || 'instant',
-        minimum_payout_amount: paymentSettings.minimum_payout_amount || 0
-      });
+    if (!user) {
+      setLoading(false);
+      return;
     }
-  }, [paymentSettings]);
+    
+    async function fetchPaymentSettings() {
+      try {
+        setLoading(true);
+        
+        const { data, error } = await supabase
+          .from('payment_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          // If settings don't exist yet, create them
+          if (error.code === 'PGRST116') {
+            const newSettings = {
+              user_id: user.id,
+              paypal_email: '',
+              stripe_connected: false,
+              payout_schedule: 'instant',
+              minimum_payout_amount: 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            const { data: createdSettings, error: createError } = await supabase
+              .from('payment_settings')
+              .insert([newSettings])
+              .select()
+              .single();
+            
+            if (createError) {
+              throw createError;
+            }
+            
+            setPaymentSettings(createdSettings);
+            setFormData({
+              paypal_email: createdSettings.paypal_email || '',
+              payout_schedule: createdSettings.payout_schedule || 'instant',
+              minimum_payout_amount: createdSettings.minimum_payout_amount || 0
+            });
+          } else {
+            throw error;
+          }
+        } else {
+          setPaymentSettings(data);
+          setFormData({
+            paypal_email: data.paypal_email || '',
+            payout_schedule: data.payout_schedule || 'instant',
+            minimum_payout_amount: data.minimum_payout_amount || 0
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching payment settings:', err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchPaymentSettings();
+  }, [user]);
   
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-    const newValue = type === 'number' ? parseFloat(value) : value;
-    console.log(`Form field changed: ${name} = ${newValue}`);
-    
     setFormData(prev => ({
       ...prev,
-      [name]: newValue
+      [name]: type === 'number' ? parseFloat(value) : value
     }));
   };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted with data:', formData);
-    
     setIsSaving(true);
     setSaveMessage({ type: '', text: '' });
     
     try {
-      console.log('Calling updatePaymentSettings with:', formData);
-      const result = await updatePaymentSettings(formData);
-      console.log('updatePaymentSettings result:', result);
+      if (!user) throw new Error('User not authenticated');
+      if (!paymentSettings) throw new Error('Payment settings not loaded');
       
-      if (!result.success) {
-        throw result.error || new Error('Failed to update payment settings');
+      const updatedData = {
+        ...formData,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('payment_settings')
+        .update(updatedData)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
       }
       
+      setPaymentSettings(data);
       setSaveMessage({
         type: 'success',
         text: 'Payment settings updated successfully!'
       });
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSaveMessage({ type: '', text: '' });
-      }, 3000);
     } catch (err) {
-      console.error('Error in handleSubmit:', err);
+      console.error('Error updating payment settings:', err);
       setSaveMessage({
         type: 'error',
         text: `Failed to update payment settings: ${err.message}`
       });
     } finally {
       setIsSaving(false);
+      
+      // Clear success message after 3 seconds
+      if (saveMessage.type === 'success') {
+        setTimeout(() => {
+          setSaveMessage({ type: '', text: '' });
+        }, 3000);
+      }
     }
   };
-  
-  // Show detailed error information for debugging
-  if (error) {
-    console.error('Rendering error state. Error details:', error);
-  }
   
   if (loading && !paymentSettings) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader className="w-8 h-8 animate-spin text-blue-500" />
-        <span className="ml-2">Loading payment settings...</span>
       </div>
     );
   }
@@ -113,16 +152,7 @@ export default function PaymentSettings() {
   if (error && !paymentSettings) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-        <h3 className="font-bold">Error loading payment settings</h3>
-        <p className="mt-1">{error.message || 'Please try again.'}</p>
-        <p className="mt-2 text-sm">
-          <button 
-            onClick={() => window.location.reload()} 
-            className="underline hover:text-red-800"
-          >
-            Refresh the page
-          </button> to try again.
-        </p>
+        <p>Error loading payment settings. Please try again.</p>
       </div>
     );
   }
