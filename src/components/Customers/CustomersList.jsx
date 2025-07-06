@@ -12,7 +12,8 @@ import {
   Loader,
   Users,
   Mail,
-  Phone
+  Phone,
+  Eye
 } from 'lucide-react';
 
 export default function CustomersList() {
@@ -109,14 +110,23 @@ export default function CustomersList() {
                       </div>
                       <div className="flex space-x-2">
                         <Link
+                          to={`/customers/${customer.id}`}
+                          className="text-green-600 hover:text-green-900"
+                          title="View Details"
+                        >
+                          <Eye className="h-5 w-5" />
+                        </Link>
+                        <Link
                           to={`/customers/${customer.id}/edit`}
                           className="text-blue-600 hover:text-blue-900"
+                          title="Edit Customer"
                         >
                           <Edit className="h-5 w-5" />
                         </Link>
                         <button
                           onClick={() => handleDelete(customer.id)}
                           className="text-red-600 hover:text-red-900"
+                          title="Delete Customer"
                         >
                           <Trash2 className="h-5 w-5" />
                         </button>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { FiSearch, FiFilter, FiEye, FiMail, FiPlus } from 'react-icons/fi'
+import { FiSearch, FiFilter, FiEye, FiMail, FiPlus, FiEdit, FiTrash2 } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { format } from 'date-fns'
@@ -40,6 +40,31 @@ export default function Customers() {
       toast.error('Failed to load customers')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDelete(customerId) {
+    if (!window.confirm('Are you sure you want to delete this customer?')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerId)
+        .eq('seller_id', user.id)
+
+      if (error) {
+        throw error
+      }
+
+      // Remove customer from local state
+      setCustomers(customers.filter(customer => customer.id !== customerId))
+      toast.success('Customer deleted successfully')
+    } catch (error) {
+      console.error('Error deleting customer:', error)
+      toast.error('Failed to delete customer')
     }
   }
 
@@ -131,12 +156,23 @@ export default function Customers() {
                     <td className="py-3">{format(new Date(customer.created_at), 'MMM dd, yyyy')}</td>
                     <td className="py-3">
                       <div className="flex space-x-2">
-                        <Link to={`/customers/${customer.id}`} className="text-gray-500 hover:text-primary-600">
+                        <Link to={`/customers/${customer.id}`} className="text-gray-500 hover:text-primary-600" title="View Details">
                           <FiEye />
                         </Link>
+                        <Link to={`/customers/${customer.id}/edit`} className="text-gray-500 hover:text-primary-600" title="Edit Customer">
+                          <FiEdit />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(customer.id)}
+                          className="text-red-500 hover:text-red-700"
+                          title="Delete Customer"
+                        >
+                          <FiTrash2 />
+                        </button>
                         <a 
                           href={`mailto:${customer.email}`} 
                           className="text-gray-500 hover:text-primary-600"
+                          title="Send Email"
                         >
                           <FiMail />
                         </a>

@@ -166,7 +166,7 @@ export default function Products() {
                         </Link>
                         <button 
                           onClick={() => handleDelete(product.id)} 
-                          className="text-gray-500 hover:text-red-600"
+                          className="text-red-500 hover:text-red-700"
                         >
                           <FiTrash2 />
                         </button>

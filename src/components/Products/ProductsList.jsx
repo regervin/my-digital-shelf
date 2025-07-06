@@ -15,7 +15,8 @@ import {
   Loader,
   ShoppingBag,
   Tag,
-  FolderTree
+  FolderTree,
+  Eye
 } from 'lucide-react';
 
 export default function ProductsList() {
@@ -231,14 +232,23 @@ export default function ProductsList() {
                     </div>
                     <div className="flex space-x-2">
                       <Link
+                        to={`/products/${product.id}`}
+                        className="text-green-600 hover:text-green-900"
+                        title="View Details"
+                      >
+                        <Eye className="h-5 w-5" />
+                      </Link>
+                      <Link
                         to={`/products/${product.id}/edit`}
                         className="text-blue-600 hover:text-blue-900"
+                        title="Edit Product"
                       >
                         <Edit className="h-5 w-5" />
                       </Link>
                       <button
                         onClick={() => handleDelete(product.id)}
                         className="text-red-600 hover:text-red-900"
+                        title="Delete Product"
                       >
                         <Trash2 className="h-5 w-5" />
                       </button>

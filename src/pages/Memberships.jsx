@@ -59,6 +59,8 @@ export default function Memberships() {
     })
 
   const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this membership?')) return
+    
     try {
       const { error } = await supabase
         .from('memberships')
@@ -167,7 +169,7 @@ export default function Memberships() {
                         </Link>
                         <button 
                           onClick={() => handleDelete(membership.id)} 
-                          className="text-gray-500 hover:text-red-600"
+                          className="text-red-500 hover:text-red-700"
                         >
                           <FiTrash2 />
                         </button>

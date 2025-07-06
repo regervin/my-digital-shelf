@@ -2,7 +2,11 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
+import ProductDetails from './pages/ProductDetails'
+import EditProduct from './pages/EditProduct'
 import Customers from './pages/Customers'
+import CustomerDetails from './pages/CustomerDetails'
+import EditCustomer from './pages/EditCustomer'
 import Sales from './pages/Sales'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
@@ -11,6 +15,9 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Home from './pages/Home'
+import Memberships from './pages/Memberships'
+import MembershipDetails from './pages/MembershipDetails'
+import EditMembership from './pages/EditMembership'
 import PrivateRoute from './components/PrivateRoute'
 import { useAuth } from './contexts/AuthContext'
 
@@ -46,9 +53,44 @@ function App() {
             <Products />
           </PrivateRoute>
         } />
+        <Route path="products/:id" element={
+          <PrivateRoute>
+            <ProductDetails />
+          </PrivateRoute>
+        } />
+        <Route path="products/:id/edit" element={
+          <PrivateRoute>
+            <EditProduct />
+          </PrivateRoute>
+        } />
+        <Route path="memberships" element={
+          <PrivateRoute>
+            <Memberships />
+          </PrivateRoute>
+        } />
+        <Route path="memberships/:id" element={
+          <PrivateRoute>
+            <MembershipDetails />
+          </PrivateRoute>
+        } />
+        <Route path="memberships/:id/edit" element={
+          <PrivateRoute>
+            <EditMembership />
+          </PrivateRoute>
+        } />
         <Route path="customers" element={
           <PrivateRoute>
             <Customers />
+          </PrivateRoute>
+        } />
+        <Route path="customers/:id" element={
+          <PrivateRoute>
+            <CustomerDetails />
+          </PrivateRoute>
+        } />
+        <Route path="customers/:id/edit" element={
+          <PrivateRoute>
+            <EditCustomer />
           </PrivateRoute>
         } />
         <Route path="sales" element={
