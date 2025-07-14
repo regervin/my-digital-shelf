@@ -4,6 +4,7 @@ import { useProducts } from '../../hooks/useProducts';
 import { useFiles } from '../../hooks/useFiles';
 import { useCategories } from '../../hooks/useCategories';
 import { useTags } from '../../hooks/useTags';
+import { useProductTypes } from '../../hooks/useProductTypes';
 import { formatFileSize } from '../../utils/formatters';
 import { Loader, Save, X, Upload, File, Image, Tag, FolderTree, Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -15,10 +16,12 @@ export default function ProductForm() {
   const { files, loading: filesLoading, error: filesError, uploadFile, deleteFile } = useFiles();
   const { categories, loading: categoriesLoading, getCategoryTree, getProductCategories } = useCategories();
   const { tags, loading: tagsLoading, getProductTags } = useTags();
+  const { productTypes, loading: productTypesLoading } = useProductTypes();
   
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    type: 'ebook',
     price: '',
     status: 'draft',
     image_url: ''
@@ -41,6 +44,16 @@ export default function ProductForm() {
   
   const isEditMode = !!id;
   
+  // Set default product type when product types are loaded
+  useEffect(() => {
+    if (productTypes.length > 0 && !formData.type) {
+      setFormData(prev => ({
+        ...prev,
+        type: productTypes[0]?.value || 'ebook'
+      }));
+    }
+  }, [productTypes, formData.type]);
+  
   // Load product data if in edit mode
   useEffect(() => {
     if (isEditMode && products.length > 0) {
@@ -49,6 +62,7 @@ export default function ProductForm() {
         setFormData({
           name: product.name || '',
           description: product.description || '',
+          type: product.type || (productTypes[0]?.value || 'ebook'),
           price: product.price || '',
           status: product.status || 'draft',
           image_url: product.image_url || ''
@@ -59,7 +73,7 @@ export default function ProductForm() {
         }
       }
     }
-  }, [isEditMode, id, products]);
+  }, [isEditMode, id, products, productTypes]);
   
   // Load product files
   useEffect(() => {
@@ -359,7 +373,7 @@ export default function ProductForm() {
     }
   };
   
-  if ((productsLoading && isEditMode) || (filesLoading && isEditMode) || categoriesLoading || tagsLoading) {
+  if ((productsLoading && isEditMode) || (filesLoading && isEditMode) || categoriesLoading || tagsLoading || productTypesLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader className="w-8 h-8 animate-spin text-blue-500" />
@@ -402,6 +416,26 @@ export default function ProductForm() {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="e.g., Premium E-book"
               />
+            </div>
+            
+            {/* Product Type */}
+            <div>
+              <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+                Product Type
+              </label>
+              <select
+                id="type"
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                {productTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
             </div>
             
             {/* Price */}

@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
 import ProductDetails from './pages/ProductDetails'
 import EditProduct from './pages/EditProduct'
+import CreateProduct from './pages/CreateProduct'
 import Customers from './pages/Customers'
 import CustomerDetails from './pages/CustomerDetails'
 import EditCustomer from './pages/EditCustomer'
@@ -51,6 +52,12 @@ function App() {
         <Route path="products" element={
           <PrivateRoute>
             <Products />
+          </PrivateRoute>
+        } />
+        {/* IMPORTANT: Create route must come BEFORE the dynamic :id route */}
+        <Route path="products/create" element={
+          <PrivateRoute>
+            <CreateProduct />
           </PrivateRoute>
         } />
         <Route path="products/:id" element={

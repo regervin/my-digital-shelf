@@ -41,6 +41,34 @@ export function useProducts() {
     fetchProducts()
   }, [user])
 
+  const getProduct = async (id) => {
+    try {
+      if (!user) throw new Error('User not authenticated')
+      
+      // Validate that id is a valid UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(id)) {
+        throw new Error(`Invalid product ID format: ${id}`)
+      }
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id) // Security check
+        .single()
+      
+      if (error) {
+        throw error
+      }
+      
+      return { success: true, data }
+    } catch (err) {
+      console.error('Error fetching product:', err)
+      return { success: false, error: err }
+    }
+  }
+
   const addProduct = async (productData) => {
     try {
       if (!user) throw new Error('User not authenticated')
@@ -78,6 +106,12 @@ export function useProducts() {
   const updateProduct = async (id, updates) => {
     try {
       if (!user) throw new Error('User not authenticated')
+      
+      // Validate that id is a valid UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(id)) {
+        throw new Error(`Invalid product ID format: ${id}`)
+      }
       
       setLoading(true)
       
@@ -118,6 +152,12 @@ export function useProducts() {
     try {
       if (!user) throw new Error('User not authenticated')
       
+      // Validate that id is a valid UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(id)) {
+        throw new Error(`Invalid product ID format: ${id}`)
+      }
+      
       setLoading(true)
       
       const { error } = await supabase
@@ -148,6 +188,7 @@ export function useProducts() {
     products,
     loading,
     error,
+    getProduct,
     addProduct,
     updateProduct,
     deleteProduct

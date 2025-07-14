@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FiSave, FiUpload, FiDollarSign, FiPackage, FiFileText, FiLink } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
+import { useProductTypes } from '../hooks/useProductTypes'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
 export default function CreateProduct() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { productTypes, loading: productTypesLoading, error: productTypesError } = useProductTypes()
   
   const [formData, setFormData] = useState({
     name: '',
@@ -24,6 +26,16 @@ export default function CreateProduct() {
   
   const [file, setFile] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Set default product type when product types are loaded
+  useEffect(() => {
+    if (productTypes.length > 0 && !formData.type) {
+      setFormData(prev => ({
+        ...prev,
+        type: productTypes[0]?.value || 'ebook'
+      }));
+    }
+  }, [productTypes, formData.type]);
   
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -64,8 +76,6 @@ export default function CreateProduct() {
         const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
         const filePath = `${user.id}/${fileName}`
         
-        console.log('Uploading file to path:', filePath)
-        
         const { error: uploadError, data } = await supabase.storage
           .from('product_files')
           .upload(filePath, file, {
@@ -74,11 +84,8 @@ export default function CreateProduct() {
           })
         
         if (uploadError) {
-          console.error('File upload error:', uploadError)
           throw uploadError
         }
-        
-        console.log('File uploaded successfully:', data)
         
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
@@ -86,7 +93,6 @@ export default function CreateProduct() {
           .getPublicUrl(filePath)
         
         fileUrl = publicUrl
-        console.log('File public URL:', fileUrl)
       }
       
       // Create product in database
@@ -104,25 +110,21 @@ export default function CreateProduct() {
         user_id: user.id
       }
       
-      console.log('Creating product with data:', productData)
-      
       const { error, data } = await supabase
         .from('products')
         .insert(productData)
         .select()
       
       if (error) {
-        console.error('Database insert error:', error)
         throw error
       }
-      
-      console.log('Product created successfully:', data)
       
       toast.success('Product created successfully!')
       navigate('/products')
     } catch (error) {
       console.error('Error creating product:', error)
       toast.error(`Failed to create product: ${error.message || 'Unknown error'}`)
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -165,13 +167,24 @@ export default function CreateProduct() {
               onChange={handleChange}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-2"
             >
-              <option value="ebook">E-Book</option>
-              <option value="course">Course</option>
-              <option value="software">Software</option>
-              <option value="templates">Templates</option>
-              <option value="graphics">Graphics</option>
-              <option value="audio">Audio</option>
-              <option value="video">Video</option>
+              {productTypes.length > 0 ? (
+                productTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="ebook">E-Book</option>
+                  <option value="course">Course</option>
+                  <option value="software">Software</option>
+                  <option value="templates">Templates</option>
+                  <option value="graphics">Graphics</option>
+                  <option value="audio">Audio</option>
+                  <option value="video">Video</option>
+                  <option value="plr">PLR (Private Label Rights)</option>
+                </>
+              )}
             </select>
           </div>
           

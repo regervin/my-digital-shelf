@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FiSave, FiUpload, FiDollarSign, FiPackage, FiFileText, FiLink } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
+import { useProductTypes } from '../hooks/useProductTypes'
+import { useProducts } from '../hooks/useProducts'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -9,6 +11,8 @@ export default function EditProduct() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { id } = useParams()
+  const { productTypes, loading: productTypesLoading } = useProductTypes()
+  const { getProduct, updateProduct } = useProducts()
   
   const [formData, setFormData] = useState({
     name: '',
@@ -34,23 +38,22 @@ export default function EditProduct() {
         
         if (!user || !id) return
         
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('id', id)
-          .single()
-        
-        if (error) {
-          throw error
-        }
-        
-        if (!data) {
-          toast.error('Product not found')
+        // Validate UUID format before making request
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        if (!uuidRegex.test(id)) {
+          toast.error('Invalid product ID')
           navigate('/products')
           return
         }
         
-        setFormData(data)
+        const result = await getProduct(id)
+        
+        if (result.success) {
+          setFormData(result.data)
+        } else {
+          throw result.error
+        }
+        
         setLoading(false)
       } catch (error) {
         console.error('Error fetching product:', error)
@@ -61,7 +64,7 @@ export default function EditProduct() {
     }
     
     fetchProduct()
-  }, [id, user, navigate])
+  }, [id, user, navigate, getProduct])
   
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -119,30 +122,27 @@ export default function EditProduct() {
       }
       
       // Update product in database
-      const { error } = await supabase
-        .from('products')
-        .update({
-          ...formData,
-          price: parseFloat(formData.price),
-          download_url: fileUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
+      const result = await updateProduct(id, {
+        ...formData,
+        price: parseFloat(formData.price),
+        download_url: fileUrl
+      })
       
-      if (error) {
-        throw error
+      if (result.success) {
+        toast.success('Product updated successfully!')
+        navigate('/products')
+      } else {
+        throw result.error
       }
-      
-      toast.success('Product updated successfully!')
-      navigate('/products')
     } catch (error) {
       console.error('Error updating product:', error)
       toast.error('Failed to update product')
+    } finally {
       setIsSubmitting(false)
     }
   }
   
-  if (loading) {
+  if (loading || productTypesLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
@@ -188,13 +188,11 @@ export default function EditProduct() {
               onChange={handleChange}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-2"
             >
-              <option value="ebook">E-Book</option>
-              <option value="course">Course</option>
-              <option value="software">Software</option>
-              <option value="templates">Templates</option>
-              <option value="graphics">Graphics</option>
-              <option value="audio">Audio</option>
-              <option value="video">Video</option>
+              {productTypes.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
             </select>
           </div>
           
